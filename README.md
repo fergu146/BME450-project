@@ -1,7 +1,7 @@
 # Title
-“My super-cool project”
+Recipe Generator
 ## Team members
-NameA (GitHubUserA), NameB (GitHubUserB)
+Lauren Testin (ltestin), NameB (GitHubUserB)
 ## Project decription
 Max ½ page. Include some information on:
 - what dataset you plan to use
