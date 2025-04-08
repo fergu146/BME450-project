@@ -1,1 +1,16 @@
+import kagglehub
+import os
+import pandas as pd
 
+# Download latest version
+path = kagglehub.dataset_download("shuyangli94/food-com-recipes-and-user-interactions")
+
+print("Path to dataset files:", path)
+
+files = os.listdir(path)
+print(files)
+
+Raw_recipes = os.path.join(path, "RAW_recipes.csv")
+print(Raw_recipes)
+
+Raw_recipes_file = pd.read_csv(Raw_recipes)
