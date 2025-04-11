@@ -1,6 +1,8 @@
 import kagglehub
 import os
 import pandas as pd
+import random
+import ast
 
 # Download latest version
 path = kagglehub.dataset_download("shuyangli94/food-com-recipes-and-user-interactions")
@@ -14,3 +16,35 @@ Raw_recipes = os.path.join(path, "RAW_recipes.csv")
 print(Raw_recipes)
 
 Raw_recipes_file = pd.read_csv(Raw_recipes)
+
+search_word = "blueberries"
+matching_indexes = []
+
+for i, ingredient_list in enumerate(Raw_recipes_file.ingredients):
+    if search_word in ingredient_list:
+      matching_indexes.append(i)
+
+if matching_indexes:
+        random_index = random.choice(matching_indexes)
+        recipe_name = Raw_recipes_file.name[random_index]
+        ingredients_string = Raw_recipes_file.ingredients[random_index]
+        ingredients_list = ast.literal_eval(ingredients_string)
+        steps_string = Raw_recipes_file.steps[random_index]
+        steps_list = ast.literal_eval(steps_string)
+
+        print(f"Chosen ingredient: {search_word}\n")
+        print(f"Recipe Name: {recipe_name}\n")
+        print(f"Ingredients:\n")
+        for ingredient_num, ingredients in enumerate(ingredients_list,1):
+          print(f"{ingredient_num}. {ingredients}\n")
+
+        print(f"Steps:\n")
+        for step_num, steps in enumerate(steps_list, 1):
+          print(f" Step {step_num}: {steps}\n")
+
+        print("Have fun cooking!!!")
+
+else:
+      print(f"No recipes found with '{search_word}'")
+
+
