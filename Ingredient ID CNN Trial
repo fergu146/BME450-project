@@ -130,3 +130,25 @@ for t in range(epochs):
     train_loop(train_dataloader, model, loss_fn, optimizer)
     test_loop(test_dataloader, model, loss_fn)
 print("Done!")
+
+
+# TEST IF IT WORKED CORRECTLY
+sample_num = 50
+
+ima = training_data[sample_num][0]
+ima = (ima - ima.mean())/ ima.std()
+ima = torch.clamp(ima, 0, 1)
+iman = ima.permute(1, 2, 0) # needed to be able to plot
+plt.imshow(iman)
+plt.show()
+
+image = training_data[sample_num][0]  # Get single image
+image = image.unsqueeze(0)  # Add batch dimension: (1, 3, 28, 28)
+r = model(image)  # Now the shape is correct
+
+with torch.no_grad():
+    r = model(image)
+
+print('neural network output pseudo-probabilities:', r)
+print('neural network output class number:', torch.argmax(r).item())
+print('neural network output, predicted class:', categories[torch.argmax(r).item()])
