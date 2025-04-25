@@ -4,27 +4,28 @@ import pandas as pd
 import random
 import ast
 
-# Download latest version
-path = kagglehub.dataset_download("shuyangli94/food-com-recipes-and-user-interactions")
+search_words = "strawberry", "salt", "flour" # Array of ingredients from data set
+matching_indexes_30 = []
+matching_indexes_60 = []
 
-print("Path to dataset files:", path)
+for i, row in Raw_recipes_file.iterrows():
+    if all(word in row['ingredients'] for word in search_words):
+        tags = ast.literal_eval(row['tags'])
+        cooking_time = None
 
-files = os.listdir(path)
-print(files)
+        for tag in tags:
+            if tag.endswith("-minutes-or-less"):
+                cooking_time = int(tag.split('-')[0])
+                break
 
-Raw_recipes = os.path.join(path, "RAW_recipes.csv")
-print(Raw_recipes)
+        if cooking_time and cooking_time <= 30:
+            matching_indexes_30.append(i)
+        elif cooking_time and cooking_time <= 60:
+            matching_indexes_60.append(i)
 
-Raw_recipes_file = pd.read_csv(Raw_recipes)
-
-search_word = "blueberries"
-matching_indexes = []
-
-for i, ingredient_list in enumerate(Raw_recipes_file.ingredients):
-    if search_word in ingredient_list:
-      matching_indexes.append(i)
-
-if matching_indexes:
+# Select and print recipes separately for each time category
+def print_recipe(matching_indexes, time_category):
+    if matching_indexes:
         random_index = random.choice(matching_indexes)
         recipe_name = Raw_recipes_file.name[random_index]
         ingredients_string = Raw_recipes_file.ingredients[random_index]
@@ -32,19 +33,23 @@ if matching_indexes:
         steps_string = Raw_recipes_file.steps[random_index]
         steps_list = ast.literal_eval(steps_string)
 
-        print(f"Chosen ingredient: {search_word}\n")
+        print(f"Chosen ingredient: {search_words}\n")
+        print(f"Recipe for {time_category}:\n") # Indicate time category
         print(f"Recipe Name: {recipe_name}\n")
         print(f"Ingredients:\n")
         for ingredient_num, ingredients in enumerate(ingredients_list,1):
-          print(f"{ingredient_num}. {ingredients}\n")
+            print(f"{ingredient_num}. {ingredients}\n")
 
         print(f"Steps:\n")
         for step_num, steps in enumerate(steps_list, 1):
-          print(f" Step {step_num}: {steps}\n")
+            print(f" Step {step_num}: {steps}\n")
 
-        print("Have fun cooking!!!")
+        print("\n\n")
 
-else:
-      print(f"No recipes found with '{search_word}'")
+    else:
+        print(f"No recipes found for {time_category} with '{search_words}'\n")
 
+# Call the function for each time category
+print_recipe(matching_indexes_30, "30 minutes or less")
+print_recipe(matching_indexes_60, "60 minutes or less")
 
