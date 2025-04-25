@@ -4,6 +4,11 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
+import kagglehub
+import os
+import pandas as pd
+import random
+import ast
 
 transform = transforms.Compose([
     transforms.Resize((128, 128)),  # Resize images to 64x64
@@ -154,7 +159,7 @@ plt.grid(True)
 plt.show()
 
 # Identify Ingredients based on Image
-sample_numbers = [500, 700]  # <- put any sample indices you want here
+sample_numbers = [743]  # <- put any sample indices you want here
 predicted_classes = []
 
 for sample_num in sample_numbers:
@@ -177,36 +182,38 @@ for sample_num in sample_numbers:
 
 print(predicted_classes)
 
-import csv
-import random
-import ast
-
-Raw_recipes = "RAW_recipes.csv"  # loading file
-print("Using local file:", Raw_recipes)
-
-Raw_recipes_file = []
-with open(Raw_recipes, newline='', encoding='utf-8') as csvfile:
-    reader = csv.DictReader(csvfile)
-    for row in reader:
-        Raw_recipes_file.append(row)
+# Download latest version
+path = kagglehub.dataset_download("shuyangli94/food-com-recipes-and-user-interactions")
+ 
+print("Path to dataset files:", path)
+ 
+files = os.listdir(path)
+print(files)
+ 
+Raw_recipes = os.path.join(path, "RAW_recipes.csv")
+print(Raw_recipes)
+ 
+Raw_recipes_file = pd.read_csv(Raw_recipes)
 
 search_words = predicted_classes # Array of ingredients from data set
+search_words = [word.lower() for word in predicted_classes]  # Normalize to lowercase
 matching_indexes_30 = []
 matching_indexes_60 = []
 
-with open('RAW_recipes.csv', newline='', encoding='utf-8') as csvfile:
-    csvreader = csv.DictReader(csvfile)  # Use DictReader to handle rows as dictionaries
-    
-    # Iterate over rows
-    for i, row in enumerate(csvreader):
-        if all(word in row['ingredients'] for word in search_words):  # Check if all words are in 'ingredients'
-            tags = ast.literal_eval(row['tags'])  # Convert string representation of list/dict to actual Python object
-            
-            # You can now process the tags and store any index or do whatever you need
-            if len(tags) == 30:  # Example condition for length 30 tags
-                matching_indexes_30.append(i)
-            elif len(tags) == 60:  # Example condition for length 60 tags
-                matching_indexes_60.append(i)
+for i, row in Raw_recipes_file.iterrows():
+    if all(word in row['ingredients'] for word in search_words):
+        tags = ast.literal_eval(row['tags'])
+        cooking_time = None
+
+        for tag in tags:
+            if tag.endswith("-minutes-or-less"):
+                cooking_time = int(tag.split('-')[0])
+                break
+
+        if cooking_time and cooking_time <= 30:
+            matching_indexes_30.append(i)
+        elif cooking_time and cooking_time <= 60:
+            matching_indexes_60.append(i)
 
 # Select and print recipes separately for each time category
 def print_recipe(matching_indexes, time_category):
