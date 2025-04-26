@@ -159,7 +159,7 @@ plt.grid(True)
 plt.show()
 
 # Identify Ingredients based on Image
-sample_numbers = [743]  # <- put any sample indices you want here
+sample_numbers = [743, 450]  # <- put any sample indices you want here
 predicted_classes = []
 
 for sample_num in sample_numbers:
