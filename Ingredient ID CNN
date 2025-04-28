@@ -1,42 +1,58 @@
+
+# This code will train a nerual network to identify an ingrdient based off of its picture
+# The first section trains the neural network
+# The second section identifies a recipe with these ingredients
+
+# importing tools/functions
 import torch
 from torch import nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
+import kagglehub
+import os
+import pandas as pd
+import random
+import ast
+from PIL import Image
 
+# Transform function
 transform = transforms.Compose([
     transforms.Resize((128, 128)),  # Resize images to 128x128
-    transforms.ToTensor()  # Convert images to PyTorch tensors
+    transforms.ToTensor()  # Converts images to PyTorch tensors
 ])
 
+# Transforms data to 128x128 sized images
 training_data = datasets.ImageFolder(root="Ingredients/Training", transform=transform)
 test_data = datasets.ImageFolder(root="Ingredients/Testing", transform=transform)
 
-from PIL import Image
-import os
 
-def convert_all_png_to_rgba(input_folder):
-    for root, _, files in os.walk(input_folder):
+# Function that converts all png images to rgba images 
+# This makes image analysis more consistent and simpler
+def convert_all_png_to_rgba(input_folder): 
+    for root, _, files in os.walk(input_folder): 
         for file in files:
-            if file.lower().endswith(".png"):  # ONLY process PNGs
+            if file.lower().endswith(".png"):  # only process PNG files
                 path = os.path.join(root, file)
                 try:
                     img = Image.open(path)
                     if img.mode == 'P':
                         print(f"Converting {path} from 'P' to 'RGBA'")
                         img = img.convert('RGBA')
-                        img.save(path)  # Overwrite in-place
+                        img.save(path)  # Overwrite
                 except Exception as e:
-                    print(f"Error converting {path}: {e}")
+                    print(f"Error converting {path}: {e}") #display if there is an error 
 
-convert_all_png_to_rgba("Vegetables/Train")
-convert_all_png_to_rgba("Vegetables/Test")
+# Converts images to rgba using the function defined above
+convert_all_png_to_rgba("Ingredients/Training")
+convert_all_png_to_rgba("Ingredients/Testing")
 
+# Loads data
 train_loader = DataLoader(training_data, batch_size=4184, shuffle=True)
 test_loader = DataLoader(test_data, batch_size=587, shuffle=False)
 
-
+#Defines all of the categories of fruits, vegetables, and proteins
 categories = ["Amaranth", "Apple", "Banana", "beans", "Beetroot", "Bell pepper", "Bitter Gourd", 
     "Blueberry", "Bottle Gourd", "Broccoli", "Cabbage", "Cantaloupe", "Capsicum", 
     "Carrot", "Cauliflower", "chicken", "chickpea", "Chilli pepper", "Coconut", "Corn", "Cucumber", 
@@ -49,7 +65,6 @@ categories = ["Amaranth", "Apple", "Banana", "beans", "Beetroot", "Bell pepper",
 
 # select a random sample from the training set
 sample_num = 2
-# print(training_data[sample_num])
 print('Inputs sample - image size:', training_data[sample_num][0].shape)
 print('Label:', training_data[sample_num][1], '\n')
 
@@ -64,24 +79,35 @@ iman = ima.permute(1, 2, 0) # needed to be able to plot
 plt.imshow(iman)
 plt.show()
 
+# Definition of Convolution Neural Network
 class CNN(nn.Module):
     def __init__(self):
         super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(3, 32, 3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, 3, stride=1, padding=1)
+        # first convolution layer: 3 input channels, 32 output channels, 3x3 kernel, stride=1, padding=1
+        self.conv1 = nn.Conv2d(3, 32, 3, stride=1, padding=1) # image remains same size 128x128
+        
+        # second convolution layer: 32 input channels, 64 output channels, 3x3 kernel, stride=1, padding=1
+        self.conv2 = nn.Conv2d(32, 64, 3, stride=1, padding=1) # image is 64x64 
+        
+        # halves the height and width of input image
         self.pool = nn.MaxPool2d(2, 2)
+        
+        # 25% of neurons dropout to prevent overfitting
         self.dropout = nn.Dropout(0.25)
-        self.fc1 = nn.Linear(64 * 32 * 32, 512)
-        self.fc2 = nn.Linear(512, len(categories))
+        
+        # fully connected layers
+        self.fc1 = nn.Linear(64 * 32 * 32, 512) # input: 65536, output: 512
+        self.fc2 = nn.Linear(512, len(categories)) # input: 512, output: 58
         
     def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))  # -> (32, 64, 64)
-        x = self.pool(F.relu(self.conv2(x)))  # -> (64, 32, 32)
-        x = x.view(x.size(0), -1)             # flatten to (batch_size, 65536)
+        x = self.pool(F.relu(self.conv1(x)))  # (32, 128, 128) -> (32, 64, 64)
+        x = self.pool(F.relu(self.conv2(x)))  # (64, 64, 64) -> (64, 32, 32)
+        x = x.view(x.size(0), -1)             # Flattens to (batch_size, 65536) -> 64*32*32 = 65536
         x = self.dropout(F.relu(self.fc1(x)))
         x = self.fc2(x)
         return x
     
+# function for training (will be called for each epoch of training)
 def train_loop(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     total_loss = 0
@@ -95,6 +121,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         loss.backward()
         optimizer.step()
         
+        # tracks the total loss
         total_loss += loss.item()
 
         if batch % 100 == 0:
@@ -104,12 +131,13 @@ def train_loop(dataloader, model, loss_fn, optimizer):
     avg_loss = total_loss / len(dataloader)
     return avg_loss
 
-
+# function to evaluate testing dataset
 def test_loop(dataloader, model, loss_fn):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
     test_loss, correct = 0, 0
-
+    
+    # Calculates the test loss
     with torch.no_grad():
         for X, y in dataloader:
             pred = model(X)
@@ -120,55 +148,42 @@ def test_loop(dataloader, model, loss_fn):
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
-#TRAIN THE NETWORK
 
+#TRAIN THE NETWORK using functions defined above
 model = CNN()
 
-batch_size = 4184
+# Batch size set; note: not entire dataset size
+batch_size = 500
 train_dataloader = DataLoader(training_data, batch_size=batch_size)
 test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
 loss_fn = nn.CrossEntropyLoss() # used for categorization
 learning_rate = 1e-3
-# note: optimizer is Adam: one of the best optimizers to date
-# it can infer learning rate and all hyper-parameters automatically
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = optim.Adam(model.parameters(), lr=learning_rate) # optimizes
 
+#Initializes arrays to store loss data
 train_losses = []
+test_losses = []
 
+#Trains over 20 Epochs
 epochs = 20
 for t in range(epochs):
     print(f"Epoch {t+1}\n-------------------------------")
-    train_loop(train_dataloader, model, loss_fn, optimizer)
-    test_loop(test_dataloader, model, loss_fn)
-    avg_loss = train_loop(train_dataloader, model, loss_fn, optimizer)
-    train_losses.append(avg_loss)
+    # Trains and Tests once per epoch and saves the loss data in arrays 
+    avg_training_loss = train_loop(train_dataloader, model, loss_fn, optimizer)
+    avg_testing_loss = test_loop(test_dataloader, model, loss_fn)
+    
+    train_losses.append(avg_training_loss)
+    test_losses.append(avg_testing_loss)
 print("Done!")
 
+# Plots the training and testing loss data from each epoch
 plt.figure(figsize=(10, 5))
-plt.plot(range(1, epochs + 1), train_losses, marker='o')
-plt.title("Training Loss Over Epochs")
+plt.plot(range(1, epochs + 1), train_losses, marker='o', color='blue', label='train loss')
+plt.plot(range(1, epochs + 1), test_losses, marker='o', color='red', label='test loss')
+plt.title("Loss Over Epochs")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
+plt.legend()
 plt.grid(True)
 plt.show()
-
-# TEST IF IT WORKED CORRECTLY
-sample_num = 40
-
-ima = training_data[sample_num][0]
-ima = (ima - ima.mean())/ ima.std()
-ima = torch.clamp(ima, 0, 1)
-iman = ima.permute(1, 2, 0) # needed to be able to plot
-plt.imshow(iman)
-plt.show()
-
-image = training_data[sample_num][0]  # Get single image
-image = image.unsqueeze(0)  # Add batch dimension: (1, 3, 28, 28)
-r = model(image)  # Now the shape is correct
-
-with torch.no_grad():
-    r = model(image)
-
-print('neural network output class number:', torch.argmax(r).item())
-print('neural network output, predicted class:', categories[torch.argmax(r).item()])
