@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 18 09:13:41 2025
-
-@author: laurenburquest
-"""
 
 # This code will train a nerual network to identify an ingrdient based off of its picture
 # The first section trains the neural network
@@ -256,6 +249,7 @@ search_words = [word.lower() for word in predicted_classes]  # Normalize to lowe
 matching_indexes_30 = []
 matching_indexes_60 = []
 
+# search for ingredients in dataset
 for i, row in Raw_recipes_file.iterrows():
     if all(word in row['ingredients'] for word in search_words):
         tags = ast.literal_eval(row['tags'])
@@ -296,6 +290,10 @@ def print_recipe(matching_indexes, time_category):
 
     else:
         print(f"No recipes found for {time_category} with '{search_words}'\n")
+
+# Call the function for each time category
+print_recipe(matching_indexes_30, "30 minutes or less")
+print_recipe(matching_indexes_60, "60 minutes or less")
 
 # Call the function for each time category
 print_recipe(matching_indexes_30, "30 minutes or less")
