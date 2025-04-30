@@ -1,6 +1,8 @@
 # This code will train a nerual network to identify an ingrdient based off of its picture
 # The first section trains the neural network
 # The second section identifies a recipe with these ingredients
+# References:
+        # We utilized Chat.gpt to help troubleshoot our code and interpret error messages
 
 # importing tools/functions
 import torch
