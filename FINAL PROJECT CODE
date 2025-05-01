@@ -146,8 +146,8 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate) # optimizes
 train_losses = []
 test_losses = []
 
-#Trains over 40 Epochs
-epochs = 40
+#Trains over 50 Epochs
+epochs = 50
 for t in range(epochs):
     print(f"Epoch {t+1}\n-------------------------------")
     # Trains and Tests once per epoch and saves the loss data in arrays 
@@ -170,7 +170,7 @@ plt.grid(True)
 plt.show()
 
 # Identify Ingredients based on Image
-sample_numbers = [255, 412]  # put any sample indices the correspond to ingredient images
+sample_numbers = [90, 422]  # put any sample indices the correspond to ingredient images
 predicted_classes = []
 images_to_plot = []
 
